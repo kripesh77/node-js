@@ -3,12 +3,12 @@ const TourModel = require('../models/tourModel');
 //route controllers
 exports.getAllTours = async (req, res) => {
   try {
-    // 1) Filtering
+    // 1A) Filtering
     const queryObj = { ...req.query };
     const excludedFields = ['page', 'fields', 'sort', 'limit'];
     excludedFields.forEach((el) => delete queryObj[el]);
 
-    // 2) Advanced Filtering
+    // 1B) Advanced Filtering
     // meaning we want to now filter with something like:
     // ?duration[gte]=5, which will be converted to:
     // {duration: {gte: 5}} in req.query;
@@ -24,8 +24,22 @@ exports.getAllTours = async (req, res) => {
       queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`),
     );
 
-    const query = TourModel.find(queryStr); // If we await it right here, we won't be able to chain other methods like .sort(), .limit() and so on.
+    let query = TourModel.find(queryStr); // If we await it right here, we won't be able to chain other methods like .sort(), .limit() and so on.
 
+    // 2) Sorting
+    if (req.query.sort) {
+      // In mongoose we can sort by multiple field by `.sort(field1 field2)`
+      // but we've to request from the url like this: 3000?sort=-field1,field2 (-field for descending order)
+      // so we've to convert comma (",") to a space (" ")
+      const sortBy = req.query.sort.split(',').join(' ');
+      query = query.sort(sortBy);
+    } else {
+      // If user doesn't specify a sort field on the url, we still sort based on some criteria
+      // In this case `-createdAt`
+      query = query.sort('-createdAt');
+    }
+
+    //Execute Query
     const tours = await query; // This is done so that we can chain query methods on it.
 
     return res.status(200).json({
