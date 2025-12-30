@@ -1,5 +1,23 @@
 const TourModel = require('../models/tourModel');
 
+//middleware
+exports.aliasTopTours = (req, res, next) => {
+  // We could have done this
+  //  req.query.limit = '5';
+  //  req.query.sort = '-ratingAverage,price';
+  //  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
+  // But express team updated req.query as only a getter
+  // means we can't directly modify it.
+  // Previously the above code would have worked but now we've to follow a different approach
+  // Now, we've to modify the url itself
+  const query = new URLSearchParams(req.query);
+  query.set('limit', 5);
+  query.set('fields', 'name,price,ratingsAverage,summary,difficulty');
+  query.set('sort', '-ratingAverage,price');
+  req.url = `${req.path}?${query.toString()}`;
+  next();
+};
+
 //route controllers
 exports.getAllTours = async (req, res) => {
   try {
