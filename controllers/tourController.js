@@ -39,6 +39,20 @@ exports.getAllTours = async (req, res) => {
       query = query.sort('-createdAt');
     }
 
+    // 3) Field Limiting
+    // for a client, it's always ideal to send as little data as possible to reduce bandwidth
+    // how it works?
+    // a. In the url: 3000?fields=name,price,duration,difficulty
+    // b. so we should return only the fields specified on the url in that case
+    // c. In this case as well, we should pass `name price duration difficulty`
+    //    so we have to convert comma (",") into space(" ")
+    if (req.query.fields) {
+      const fields = req.query.fields.split(',').join(' ');
+      query = query.select(fields); //selecting and returning the required data
+    } else {
+      query = query.select('-__v');
+    }
+
     //Execute Query
     const tours = await query; // This is done so that we can chain query methods on it.
 
