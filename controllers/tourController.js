@@ -53,16 +53,30 @@ exports.getAllTours = async (req, res) => {
       query = query.select('-__v');
     }
 
+    // 4) Pagination
+    // * 1 to convert string to number
+    const limit = req.query.limit * 1 || 8;
+    const page = req.query.page * 1 || 1;
+    const skip = (page - 1) * limit;
+    query = query.skip(skip).limit(limit);
+
+    if (req.query.page) {
+      const numTours = await TourModel.countDocuments();
+      if (skip >= numTours) throw new Error('Page not found');
+    }
+
     //Execute Query
     const tours = await query; // This is done so that we can chain query methods on it.
 
     return res.status(200).json({
       status: 'success',
       results: tours.length,
+      page: page,
+      limit: limit,
       data: { tours },
     });
   } catch (err) {
-    return res.status(404).json({ status: 'error', err });
+    return res.status(404).json({ status: 'error', message: { err } });
   }
 };
 
