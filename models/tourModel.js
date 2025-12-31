@@ -60,5 +60,22 @@ tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
 });
 
+//Just like express, middlewares in mongoose is also a fundamental concept
+// There are 4 types of middlewares in mongoose
+// 1) Document Middleware
+// 2) Query Middleware
+// 3) Aggregate Middleware
+// 4) Model Middleware
+// Note: Just like virtual property, we define middleware in the schema
+
+// 1) Document Middleware (middleware what can act on the currently processed document)
+// `pre` middleware runs before an actual event. In this case the event is `save`
+// DOCUMENT MIDDLEWARE: runs before .save() and .create(). not on insertMany or other.
+// the anonymous function is gonna be called before the document is actually saved in DB
+tourSchema.pre('save', function () {
+  // this keyword points to the processed documents, that's why it's called document middleware
+  console.log(this);
+});
+
 const TourModel = mongoose.model('Tour', tourSchema);
 module.exports = TourModel;
