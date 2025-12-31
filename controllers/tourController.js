@@ -18,79 +18,71 @@ exports.aliasTopTours = (req, res, next) => {
   next();
 };
 
+class APIFeatures {
+  constructor(query, queryString) {
+    this.query = query;
+    this.queryString = queryString;
+  }
+
+  filter() {
+    const queryObj = { ...this.queryString };
+    const excludedObj = ['page', 'limit', 'fields', 'sort'];
+    excludedObj.forEach((el) => delete queryObj[el]);
+
+    const queryStr = JSON.stringify(queryObj).replace(
+      /\b(gt|gte|lt|lte)\b/g,
+      (match) => `$${match}`,
+    );
+    this.query = this.query.find(JSON.parse(queryStr));
+    return this;
+  }
+
+  sort() {
+    if (this.queryString.sort) {
+      const sortBy = this.queryString.sort.split(',').join(' ');
+      this.query = this.query.sort(sortBy);
+    } else {
+      this.query = this.query.sort('-createdAt');
+    }
+    return this;
+  }
+
+  project() {
+    if (this.queryString.fields) {
+      const fieldStr = this.queryString.fields.split(',').join(' ');
+      this.query = this.query.select(fieldStr);
+    } else {
+      this.query = this.query.select('-__v');
+    }
+    return this;
+  }
+
+  paginate() {
+    const limit = this.queryString.limit * 1 || 8;
+    const page = this.queryString.page * 1 || 1;
+    const skip = (page - 1) * limit;
+    this.query = this.query.skip(skip).limit(limit);
+    this.pageInfo = { page, limit, skip };
+    return this;
+  }
+}
+
 //route controllers
 exports.getAllTours = async (req, res) => {
   try {
-    // 1A) Filtering
-    const queryObj = { ...req.query };
-    const excludedFields = ['page', 'fields', 'sort', 'limit'];
-    excludedFields.forEach((el) => delete queryObj[el]);
-
-    // 1B) Advanced Filtering
-    // meaning we want to now filter with something like:
-    // ?duration[gte]=5, which will be converted to:
-    // {duration: {gte: 5}} in req.query;
-    // why we're doing this?
-    // because filter of mongodb looks something like: {duration: {$gte: 5}}
-    // so we want to match that directly through the url.
-    // Now, we just have to replace gte,gt,lte,lt to $gte,$gt,$lte,$lt if present any.
-    // so let's do it by:
-    // queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
-
-    let queryStr = JSON.stringify(queryObj);
-    queryStr = JSON.parse(
-      queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`),
-    );
-
-    let query = TourModel.find(queryStr); // If we await it right here, we won't be able to chain other methods like .sort(), .limit() and so on.
-
-    // 2) Sorting
-    if (req.query.sort) {
-      // In mongoose we can sort by multiple field by `.sort(field1 field2)`
-      // but we've to request from the url like this: 3000?sort=-field1,field2 (-field for descending order)
-      // so we've to convert comma (",") to a space (" ")
-      const sortBy = req.query.sort.split(',').join(' ');
-      query = query.sort(sortBy);
-    } else {
-      // If user doesn't specify a sort field on the url, we still sort based on some criteria
-      // In this case `-createdAt`
-      query = query.sort('-createdAt');
-    }
-
-    // 3) Field Limiting
-    // for a client, it's always ideal to send as little data as possible to reduce bandwidth
-    // how it works?
-    // a. In the url: 3000?fields=name,price,duration,difficulty
-    // b. so we should return only the fields specified on the url in that case
-    // c. In this case as well, we should pass `name price duration difficulty`
-    //    so we have to convert comma (",") into space(" ")
-    if (req.query.fields) {
-      const fields = req.query.fields.split(',').join(' ');
-      query = query.select(fields); //selecting and returning the required data
-    } else {
-      query = query.select('-__v');
-    }
-
-    // 4) Pagination
-    // * 1 to convert string to number
-    const limit = req.query.limit * 1 || 8;
-    const page = req.query.page * 1 || 1;
-    const skip = (page - 1) * limit;
-    query = query.skip(skip).limit(limit);
-
-    if (req.query.page) {
-      const numTours = await TourModel.countDocuments();
-      if (skip >= numTours) throw new Error('Page not found');
-    }
+    const features = new APIFeatures(TourModel.find(), req.query)
+      .filter()
+      .sort()
+      .project()
+      .paginate();
 
     //Execute Query
-    const tours = await query; // This is done so that we can chain query methods on it.
-
+    const tours = await features.query; // This is done so that we can chain query methods on it.
     return res.status(200).json({
       status: 'success',
       results: tours.length,
-      page: page,
-      limit: limit,
+      page: features.pageInfo.page,
+      limit: features.pageInfo.limit,
       data: { tours },
     });
   } catch (err) {
