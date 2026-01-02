@@ -93,6 +93,14 @@ tourSchema.pre('save', function (/* next */) {
 tourSchema.pre(/^find/, function (/* next */) {
   this.find({ secretTour: { $ne: true } });
   // next(); seems like we don't need next anymore
+
+  this.start = Date.now();
+});
+
+// post query middleware
+tourSchema.post(/^find/, function (docs) {
+  console.log(`Query took: ${Date.now() - this.start} miliseconds`);
+  console.log(docs);
 });
 
 const TourModel = mongoose.model('Tour', tourSchema);
