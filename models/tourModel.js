@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
 
 mongoose
   .connect(process.env.DATABASE)
@@ -19,11 +20,11 @@ const tourSchema = new mongoose.Schema(
     },
     difficulty: {
       type: String,
-      require: [true, 'A tour must have a difficulty'],
+      required: [true, 'A tour must have a difficulty'],
     },
     ratingAverage: { type: Number, default: 4.5 },
     ratingQuantity: { type: Number, default: 0 },
-    price: { type: Number, require: [true, 'A tour must have a price'] },
+    price: { type: Number, required: [true, 'A tour must have a price'] },
     priceDiscount: Number,
     summary: {
       type: String,
@@ -41,6 +42,7 @@ const tourSchema = new mongoose.Schema(
     images: [String],
     createdAt: { type: Date, default: Date.now(), select: false },
     startDates: [Date],
+    slug: String,
   },
   {
     toJSON: { virtuals: true },
@@ -72,9 +74,10 @@ tourSchema.virtual('durationWeeks').get(function () {
 // `pre` middleware runs before an actual event. In this case the event is `save`
 // DOCUMENT MIDDLEWARE: runs before .save() and .create(). not on insertMany or other.
 // the anonymous function is gonna be called before the document is actually saved in DB
-tourSchema.pre('save', function () {
+tourSchema.pre('save', function (next) {
   // this keyword points to the processed documents, that's why it's called document middleware
-  console.log(this);
+  this.slug = slugify(this.name, { lower: true });
+  next();
 });
 
 const TourModel = mongoose.model('Tour', tourSchema);
