@@ -43,6 +43,7 @@ const tourSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now(), select: false },
     startDates: [Date],
     slug: String,
+    secretTour: { type: Boolean, default: false },
   },
   {
     toJSON: { virtuals: true },
@@ -74,10 +75,24 @@ tourSchema.virtual('durationWeeks').get(function () {
 // `pre` middleware runs before an actual event. In this case the event is `save`
 // DOCUMENT MIDDLEWARE: runs before .save() and .create(). not on insertMany or other.
 // the anonymous function is gonna be called before the document is actually saved in DB
-tourSchema.pre('save', function (next) {
+tourSchema.pre('save', function (/* next */) {
+  // seems like we don't need next() anymore in document middleware
   // this keyword points to the processed documents, that's why it's called document middleware
   this.slug = slugify(this.name, { lower: true });
+  // next();
+});
+
+// this is post document middleware
+/* tourSchema.post('save', (doc, next) => {
+  // `doc` is the returned document after .save() or .create()
+  console.log(doc);
   next();
+}); */
+
+// 2) Query Middleware
+tourSchema.pre(/^find/, function (/* next */) {
+  this.find({ secretTour: { $ne: true } });
+  // next(); seems like we don't need next anymore
 });
 
 const TourModel = mongoose.model('Tour', tourSchema);
