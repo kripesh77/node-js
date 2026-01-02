@@ -12,6 +12,12 @@ const tourSchema = new mongoose.Schema(
       required: [true, 'A tour must have a name'],
       unique: true,
       trim: true,
+      maxlength: [40, 'A tour name must have less or equal than 40 characters'],
+      minlength: [10, 'A tour name must have more or equal than 10 characters'],
+      // great, this validator runs while creating a new tour
+      // what about updating the tours?
+      // the validators simply won't execute at the time of updation, so we can:
+      // run validator again on update
     },
     duration: { type: Number, required: [true, 'A tour must have duration'] },
     maxGroupSize: {
@@ -21,8 +27,17 @@ const tourSchema = new mongoose.Schema(
     difficulty: {
       type: String,
       required: [true, 'A tour must have a difficulty'],
+      enum: {
+        values: ['easy', 'medium', 'difficult'],
+        message: 'Difficulty must be either: "easy", "medium" or "difficult"',
+      },
     },
-    ratingAverage: { type: Number, default: 4.5 },
+    ratingAverage: {
+      type: Number,
+      default: 4.5,
+      min: [1, 'Rating must be above 1.0'],
+      max: [5, 'Rating must be less than 5.0'],
+    },
     ratingQuantity: { type: Number, default: 0 },
     price: { type: Number, required: [true, 'A tour must have a price'] },
     priceDiscount: Number,
