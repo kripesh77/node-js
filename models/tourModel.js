@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 
+// const validator = require('validator');
+
 mongoose
   .connect(process.env.DATABASE)
   .then(() => console.log('database connected successfully'));
@@ -14,6 +16,7 @@ const tourSchema = new mongoose.Schema(
       trim: true,
       maxlength: [40, 'A tour name must have less or equal than 40 characters'],
       minlength: [10, 'A tour name must have more or equal than 10 characters'],
+      //validate: [validator.isAlpha, 'Tour name must be alphaNumeric'],
       // great, this validator runs while creating a new tour
       // what about updating the tours?
       // the validators simply won't execute at the time of updation, so we can:
@@ -40,7 +43,26 @@ const tourSchema = new mongoose.Schema(
     },
     ratingQuantity: { type: Number, default: 0 },
     price: { type: Number, required: [true, 'A tour must have a price'] },
-    priceDiscount: Number,
+    priceDiscount: {
+      type: Number,
+      validate: {
+        validator: function (val) {
+          // this only points to current docs on NEW document creation
+          return val <= this.price;
+        },
+        message: 'Discounted price ({VALUE}) should be less than regular price',
+      },
+    },
+    // shortcut
+    /*  priceDiscount: {
+      type: Number,
+      validate: [
+      function (val) {
+          return val <= this.price;
+        },
+        'Discounted price ({VALUE}) should be less than regular price',
+      ]
+    }, */
     summary: {
       type: String,
       trim: true,
