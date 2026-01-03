@@ -1,5 +1,6 @@
 const TourModel = require('../models/tourModel');
 const APIFeatures = require('../utils/APIFeatures');
+const AppError = require('../utils/appError');
 const catchAsyncError = require('../utils/catchAsyncError');
 
 //middleware
@@ -41,6 +42,12 @@ exports.getAllTours = catchAsyncError(async (req, res, next) => {
 
 exports.getTour = catchAsyncError(async (req, res, next) => {
   const tour = await TourModel.findById(req.params.id);
+  if (!tour) {
+    // By default the catchAsyncError throws error if promise is rejected
+    // and it will always be a non-operational error
+    // For the error's like this one having no tours, we can explicitely throw the AppError as:
+    return next(new AppError("This tour doesn't exists", 404));
+  }
   return res.status(200).json({ status: 'success', data: { tour } });
 });
 
@@ -62,13 +69,23 @@ exports.updateTour = catchAsyncError(async (req, res, next) => {
       runValidators: true, // this ensures validator's defined on model schema runs once again on update
     },
   );
+
+  if (!tour) {
+    return next(new AppError("This tour doesn't exists", 404));
+  }
+
   return res
     .status(200)
     .json({ status: 'success', data: { tour: updatedTour } });
 });
 
 exports.deleteTour = catchAsyncError(async (req, res, next) => {
-  await TourModel.findByIdAndDelete(req.params.id);
+  const tour = await TourModel.findByIdAndDelete(req.params.id);
+
+  if (!tour) {
+    return next(new AppError("This tour doesn't exists", 404));
+  }
+
   return res.status(204).json({ data: null });
 });
 
