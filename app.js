@@ -6,6 +6,7 @@ const app = express();
 // because the query wasn't parsing ?duration[gte]=5 as {duration: { gte: 5}} but as {duration[gte]=5}
 app.set('query parser', 'extended');
 
+const AppError = require('./utils/appError');
 const userRouter = require('./routes/userRoutes');
 const tourRouter = require('./routes/tourRoutes');
 
@@ -35,12 +36,7 @@ app.use('/api/v1/users', userRouter);
 // we do this
 app.use((req, res, next) => {
   // creating an error
-  // Now we can go all over the app and define error like this and pass it to next(err);
-  // But there's a better approach of throwing an error, by making a separate error class
-  // refer next commit for details
-  const err = new Error(`can't find ${req.originalUrl}`);
-  err.statusCode = 404;
-  err.status = 'fail';
+  const err = new AppError(`can't find ${req.originalUrl}`, 404);
   next(err);
 });
 
