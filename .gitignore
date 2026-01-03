@@ -30,3 +30,5 @@ build/
 # Coverage
 coverage/
 .nyc_output/
+
+.eslintrc.js
