@@ -1,3 +1,9 @@
+const AppError = require('../utils/appError');
+
+const handleCastErrorDB = (err) => {
+  return new AppError(`Invalid ${err.path}: ${err.value}`, 400);
+};
+
 const sendErrorDev = (err, res) => {
   return res.status(err.statusCode).json({
     status: err.status,
@@ -35,6 +41,23 @@ module.exports = (err, req, res, next) => {
   if (process.env.NODE_ENV === 'development') {
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === 'production') {
-    sendErrorProd(err, res);
+    /* 
+    let error = { ...err };
+    console.log(err.name); // CastError
+    console.log(error.name); // undefined
+    why this happens?
+    - because when you spread an Error object, it only copies enumerable properties,
+    - but Error's name property (and other properties like message, stack) are non-enumerable by default.
+     */
+
+    // Solution: is to explicitely copy these properties
+    let error = {
+      ...err,
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+    };
+    if (error.name === 'CastError') error = handleCastErrorDB(error);
+    sendErrorProd(error, res);
   }
 };
