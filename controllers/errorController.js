@@ -15,7 +15,6 @@ const handleValidationError = (err) => {
   const errorMessage = Object.values(err.errors)
     .map((el) => el.message)
     .join('. ');
-  console.log(errorMessage);
   return new AppError(`Invalid input data. ${errorMessage}`, 400);
 };
 

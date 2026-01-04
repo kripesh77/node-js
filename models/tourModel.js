@@ -3,10 +3,6 @@ const slugify = require('slugify');
 
 // const validator = require('validator');
 
-mongoose
-  .connect(process.env.DATABASE)
-  .then(() => console.log('database connected successfully'));
-
 const tourSchema = new mongoose.Schema(
   {
     name: {
