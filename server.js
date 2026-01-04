@@ -10,7 +10,7 @@ mongoose
   .connect(process.env.DATABASE)
   .then(() => console.log('database connected successfully'));
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`server started at ${3000}`);
 });
 
@@ -24,7 +24,11 @@ process.on('unhandledRejection', (err) => {
   console.log('UNHANDLED REJECTION! 💥 SHUTTING DOWN...');
   // 0 means success
   // 1 means uncaught exception
-  process.exit(1); // crashing the server
+  // what we did previously will immediately crash the server without completing the currently running processes
+  // So we've to first wait for all processes to complete and then only crash our server like this:
+  server.close(() => {
+    process.exit(1); // crashing the server
+  });
 });
 // One of the unhandled rejection that this handles is the database connection error in mongoose
 // But it can handle any kind of unhandled rejection in our application
