@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema({
       message:
         'Password must be at least 8 characters long and include a letter, a number, and a special character',
     },
+    select: false,
   },
   passwordConfirm: {
     type: String,
@@ -60,6 +61,19 @@ userSchema.pre('save', async function () {
   this.password = await bcrypt.hash(this.password, 12);
   this.passwordConfirm = undefined;
 });
+
+// INSTANCE METHOD
+// Instance method is basically a method that's gonna be available on all documents of a certain collection
+userSchema.methods.correctPassword = async function (
+  candidatePassword,
+  userPassword,
+) {
+  // here, we `this` points to the input document
+  // that means user's hashed password simply becomes available in this.password
+  // But since we explicitely instructed schema to not include it with `select : false`
+  // we've to explicitely pass it down
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
 const UserModel = mongoose.model('User', userSchema);
 module.exports = UserModel;
