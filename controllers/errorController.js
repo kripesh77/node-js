@@ -4,6 +4,21 @@ const handleCastErrorDB = (err) => {
   return new AppError(`Invalid ${err.path}: ${err.value}`, 400);
 };
 
+const handleDuplicateNameEntry = (err) => {
+  // Tip: Don't try to remember the field names
+  // try to grab the concept
+  // these fields are referenced from the error and then written
+  return new AppError(`${err.keyValue.name} already exists`, 400);
+};
+
+const handleValidationError = (err) => {
+  const errorMessage = Object.values(err.errors)
+    .map((el) => el.message)
+    .join('. ');
+  console.log(errorMessage);
+  return new AppError(`Invalid input data. ${errorMessage}`, 400);
+};
+
 const sendErrorDev = (err, res) => {
   return res.status(err.statusCode).json({
     status: err.status,
@@ -57,7 +72,17 @@ module.exports = (err, req, res, next) => {
       message: err.message,
       stack: err.stack,
     };
+
+    // Let's be clear about why we're doing these things
+    // mongoose automatically throws error when errors like:
+    // - Invalid objectId, duplicate unique field, validation errors, etc, happens.
+    // These errors won't get isOperational flag because they are not passed through AppError
+    // But these are operational error and are expected to be operational
+    // so we're explicitely passing then through AppError so that these errors become operational
+    // That's it.
     if (error.name === 'CastError') error = handleCastErrorDB(error);
+    if (error.code === 11000) error = handleDuplicateNameEntry(error);
+    if (error.name === 'ValidationError') error = handleValidationError(error);
     sendErrorProd(error, res);
   }
 };
