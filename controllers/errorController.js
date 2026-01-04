@@ -4,11 +4,14 @@ const handleCastErrorDB = (err) => {
   return new AppError(`Invalid ${err.path}: ${err.value}`, 400);
 };
 
-const handleDuplicateNameEntry = (err) => {
+const handleDuplicateEntry = (err) => {
   // Tip: Don't try to remember the field names
   // try to grab the concept
   // these fields are referenced from the error and then written
-  return new AppError(`${err.keyValue.name} already exists`, 400);
+  return new AppError(
+    `${err.keyValue.name || `'${err.keyValue.email}'`} already exists`,
+    400,
+  );
 };
 
 const handleValidationError = (err) => {
@@ -80,7 +83,7 @@ module.exports = (err, req, res, next) => {
     // so we're explicitely passing then through AppError so that these errors become operational
     // That's it.
     if (error.name === 'CastError') error = handleCastErrorDB(error);
-    if (error.code === 11000) error = handleDuplicateNameEntry(error);
+    if (error.code === 11000) error = handleDuplicateEntry(error);
     if (error.name === 'ValidationError') error = handleValidationError(error);
     sendErrorProd(error, res);
   }
