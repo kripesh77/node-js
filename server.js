@@ -1,6 +1,17 @@
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 
+// UNCAUGHT EXCEPTIONS:
+// - All errors that occurs in our synchronous code but not handled anywhere are called uncaught exceptions.
+// - Just like we have a way to handle unhandled rejection, we also have a way to handle uncaught exceptions.
+// - E.g: console.log(x); without defining `x`
+// we're putting this code here because application has to start listening to this `uncaughtException` before any process runs
+process.on('uncaughtException', (err) => {
+  console.log('UNCAUGHT EXCEPTION! 💥 SHUTTING DOWN...');
+  console.log(err.name, err.message);
+  process.exit(1); // crashing the server
+});
+
 dotenv.config({ path: './config.env' });
 const app = require('./app');
 
@@ -20,8 +31,8 @@ const server = app.listen(port, () => {
 // NOTE: Each time there is an unhandled rejection somewhere in our application, the process object will emit an object called `unhandledRejection`
 // So idea is to just subscribe to that event like this:
 process.on('unhandledRejection', (err) => {
-  console.log(err.name, err.message);
   console.log('UNHANDLED REJECTION! 💥 SHUTTING DOWN...');
+  console.log(err.name, err.message);
   // 0 means success
   // 1 means uncaught exception
   // what we did previously will immediately crash the server without completing the currently running processes
