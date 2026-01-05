@@ -24,7 +24,7 @@ exports.signup = catchAsyncError(async (req, res, next) => {
 });
 
 exports.login = catchAsyncError(async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   // 1) check if email and password exists in the body
   if (!email || !password) {
@@ -92,3 +92,18 @@ exports.protect = catchAsyncError(async (req, res, next) => {
   req.user = freshUser;
   next();
 });
+
+// Authorization
+// Even if user is logged in, we can't let them perform all sort of actions
+// E.g we can't let all user's delete our tours
+// In Authorization, we check if certain user is allowed to access resource or not
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(
+        new AppError("Your role doesn't have access to this resource", 403),
+      );
+    }
+    next();
+  };
+};
