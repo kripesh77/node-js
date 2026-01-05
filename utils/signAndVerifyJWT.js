@@ -1,13 +1,17 @@
 const jwt = require('jsonwebtoken');
+const { promisify } = require('util');
 
-exports.signJWT = (id) => {
-  const token = jwt.sign({ id }, process.env.JWT_SECRET, {
+const signAsync = promisify(jwt.sign);
+const verifyAsync = promisify(jwt.verify);
+
+exports.signJWT = async (id) => {
+  const token = await signAsync({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
   return token;
 };
 
-exports.verifyJWT = (token) => {
-  const data = jwt.verify(token, process.env.JWT_SECRET);
+exports.verifyJWT = async (token) => {
+  const data = await verifyAsync(token, process.env.JWT_SECRET);
   return data;
 };

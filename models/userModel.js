@@ -51,6 +51,7 @@ const userSchema = new mongoose.Schema({
       message: 'Passwords do not match!',
     },
   },
+  passwordChangedAt: Date,
 });
 
 // JUST DISCOVERED, next() in pre document middleware like below is deprecated from mongoose 9.x

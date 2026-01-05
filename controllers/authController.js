@@ -5,7 +5,7 @@
 const UserModel = require('../models/userModel');
 const catchAsyncError = require('../utils/catchAsyncError');
 const AppError = require('../utils/appError');
-const { signJWT } = require('../utils/signAndVerifyJWT');
+const { signJWT, verifyJWT } = require('../utils/signAndVerifyJWT');
 
 exports.signup = catchAsyncError(async (req, res, next) => {
   // one can send role="admin" or similar in req.body, so we donot accept whole req.body directly
@@ -58,4 +58,35 @@ exports.login = catchAsyncError(async (req, res, next) => {
   return res
     .status(200)
     .json({ status: 'success', token, data: { user: user } });
+});
+
+exports.protect = catchAsyncError(async (req, res, next) => {
+  // 1) Getting the token
+  let token;
+  const { authorization } = req.headers;
+  if (authorization && authorization.startsWith('Bearer')) {
+    token = authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    return next(new AppError("You're not logged in! Please log in.", 401));
+  }
+
+  // 2) Verifying the token
+  const info = await verifyJWT(token);
+
+  // 3) Checking the user actually exists
+  const user = await UserModel.findById(info.id);
+  if (!user) {
+    return next(new AppError("User doesn't exists", 404));
+  }
+
+  // 4) Check if user changed password after JWT was issued
+  if (user.passwordChangedAt || user.passwordChangedAt > info.iat) {
+    return new AppError(
+      next("You're not authorized to access this route", 401),
+    );
+  }
+  req.user = user;
+  next();
 });

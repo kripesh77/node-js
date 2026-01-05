@@ -130,11 +130,12 @@ tourSchema.pre(/^find/, function (/* next */) {
   this.start = Date.now();
 });
 
-// post query middleware
+/* // post query middleware
 tourSchema.post(/^find/, function (docs) {
   console.log(`Query took: ${Date.now() - this.start} miliseconds`);
   console.log(docs);
 });
+ */
 
 // 3) Aggregation middleware
 tourSchema.pre('aggregate', function () {
