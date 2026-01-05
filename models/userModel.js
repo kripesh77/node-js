@@ -76,5 +76,13 @@ userSchema.methods.correctPassword = async function (
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const passwordChangedTimestamp = this.passwordChangedAt.getTime() / 1000;
+    return JWTTimestamp < passwordChangedTimestamp;
+  }
+  return false; // password is not changed yet
+};
+
 const UserModel = mongoose.model('User', userSchema);
 module.exports = UserModel;

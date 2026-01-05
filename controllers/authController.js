@@ -17,7 +17,7 @@ exports.signup = catchAsyncError(async (req, res, next) => {
     passwordConfirm,
   });
 
-  const token = signJWT(newUser._id);
+  const token = await signJWT(newUser._id);
   return res
     .status(201)
     .json({ status: 'success', token, data: { user: newUser } });
@@ -53,7 +53,7 @@ exports.login = catchAsyncError(async (req, res, next) => {
 
   // 3) send back token
   user.password = undefined;
-  const token = signJWT(user._id);
+  const token = await signJWT(user._id);
 
   return res
     .status(200)
@@ -73,20 +73,22 @@ exports.protect = catchAsyncError(async (req, res, next) => {
   }
 
   // 2) Verifying the token
-  const info = await verifyJWT(token);
+  const decoded = await verifyJWT(token);
 
   // 3) Checking the user actually exists
-  const user = await UserModel.findById(info.id);
-  if (!user) {
-    return next(new AppError("User doesn't exists", 404));
+  const freshUser = await UserModel.findById(decoded.id);
+  if (!freshUser) {
+    return next(new AppError('User no longer exists', 404));
   }
 
   // 4) Check if user changed password after JWT was issued
-  if (user.passwordChangedAt || user.passwordChangedAt > info.iat) {
-    return new AppError(
-      next("You're not authorized to access this route", 401),
+  if (freshUser.changedPasswordAfter(decoded.iat)) {
+    return next(
+      new AppError('Password is recently changed! Please login again.', 401),
     );
   }
-  req.user = user;
+
+  // GRANT access to the protected route
+  req.user = freshUser;
   next();
 });
